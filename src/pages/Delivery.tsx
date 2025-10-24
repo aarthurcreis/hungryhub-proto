@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { MapPin, Phone, Package } from "lucide-react";
 import { toast } from "sonner";
 
@@ -18,44 +20,91 @@ interface DeliveryOrder {
 
 const Delivery = () => {
   const { totalItems } = useCart();
-  const [orders, setOrders] = useState<DeliveryOrder[]>([
-    {
-      id: "#A1B2C3",
-      address: "Rua das Flores, 123 - Centro",
-      phone: "(11) 98765-4321",
-      items: 3,
-      total: 87.40,
-      status: "pending",
-    },
-    {
-      id: "#D4E5F6",
-      address: "Av. Principal, 456 - Jardim",
-      phone: "(11) 91234-5678",
-      items: 2,
-      total: 75.90,
-      status: "pending",
-    },
-  ]);
+  const { user } = useAuth();
+  const [orders, setOrders] = useState<any[]>([]);
 
-  const handleAcceptOrder = (orderId: string) => {
-    setOrders(orders.map(order => 
-      order.id === orderId ? { ...order, status: "accepted" as const } : order
-    ));
-    toast.success("Pedido aceito! Iniciando entrega...");
+  useEffect(() => {
+    fetchOrders();
+
+    const subscription = supabase
+      .channel("orders-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "orders",
+        },
+        () => {
+          fetchOrders();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, []);
+
+  const fetchOrders = async () => {
+    const { data } = await supabase
+      .from("orders")
+      .select("*, order_items(quantity)")
+      .or(`delivery_person_id.is.null,delivery_person_id.eq.${user?.id}`)
+      .in("status", ["pending", "accepted", "delivering"])
+      .order("created_at", { ascending: false });
+
+    if (data) {
+      setOrders(data.map(order => ({
+        ...order,
+        id: order.order_number,
+        items: order.order_items.reduce((sum: number, item: any) => sum + item.quantity, 0),
+      })));
+    }
   };
 
-  const handleStartDelivery = (orderId: string) => {
-    setOrders(orders.map(order => 
-      order.id === orderId ? { ...order, status: "delivering" as const } : order
-    ));
+  const handleAcceptOrder = async (order: any) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("orders")
+      .update({ status: "accepted", delivery_person_id: user.id })
+      .eq("id", order.id);
+
+    if (error) {
+      toast.error("Erro ao aceitar pedido");
+      return;
+    }
+    toast.success("Pedido aceito!");
+    fetchOrders();
+  };
+
+  const handleStartDelivery = async (order: any) => {
+    const { error } = await supabase
+      .from("orders")
+      .update({ status: "delivering" })
+      .eq("id", order.id);
+
+    if (error) {
+      toast.error("Erro ao iniciar entrega");
+      return;
+    }
     toast.success("Entrega iniciada!");
+    fetchOrders();
   };
 
-  const handleCompleteDelivery = (orderId: string) => {
-    setOrders(orders.map(order => 
-      order.id === orderId ? { ...order, status: "delivered" as const } : order
-    ));
+  const handleCompleteDelivery = async (order: any) => {
+    const { error } = await supabase
+      .from("orders")
+      .update({ status: "delivered" })
+      .eq("id", order.id);
+
+    if (error) {
+      toast.error("Erro ao concluir entrega");
+      return;
+    }
     toast.success("Entrega concluída!");
+    fetchOrders();
   };
 
   const getStatusBadge = (status: DeliveryOrder["status"]) => {
@@ -108,7 +157,7 @@ const Delivery = () => {
                     {order.status === "pending" && (
                       <Button 
                         variant="gradient" 
-                        onClick={() => handleAcceptOrder(order.id)}
+                        onClick={() => handleAcceptOrder(order)}
                       >
                         Aceitar Pedido
                       </Button>
@@ -116,7 +165,7 @@ const Delivery = () => {
                     {order.status === "accepted" && (
                       <Button 
                         variant="default" 
-                        onClick={() => handleStartDelivery(order.id)}
+                        onClick={() => handleStartDelivery(order)}
                       >
                         Iniciar Entrega
                       </Button>
@@ -124,7 +173,7 @@ const Delivery = () => {
                     {order.status === "delivering" && (
                       <Button 
                         variant="default" 
-                        onClick={() => handleCompleteDelivery(order.id)}
+                        onClick={() => handleCompleteDelivery(order)}
                       >
                         Concluir Entrega
                       </Button>

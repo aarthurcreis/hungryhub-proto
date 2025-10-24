@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,15 +6,24 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { signIn, signUp, user, loading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user && !loading) {
+      navigate("/");
+    }
+  }, [user, loading, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
@@ -27,8 +36,29 @@ const Login = () => {
       return;
     }
 
-    toast.success(`Bem-vindo(a) ao FoodExpress!`);
-    navigate("/");
+    setIsSubmitting(true);
+
+    try {
+      if (isLogin) {
+        const { error } = await signIn(email, password);
+        if (error) {
+          toast.error("Email ou senha incorretos");
+          return;
+        }
+        toast.success("Login realizado com sucesso!");
+        navigate("/");
+      } else {
+        const { error } = await signUp(email, password, name);
+        if (error) {
+          toast.error("Erro ao criar conta: " + error.message);
+          return;
+        }
+        toast.success("Conta criada com sucesso! Faça login.");
+        setIsLogin(true);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -84,8 +114,9 @@ const Login = () => {
               variant="gradient"
               size="lg"
               className="w-full"
+              disabled={isSubmitting}
             >
-              {isLogin ? "Entrar" : "Criar conta"}
+              {isSubmitting ? "Processando..." : (isLogin ? "Entrar" : "Criar conta")}
             </Button>
             <Button
               type="button"

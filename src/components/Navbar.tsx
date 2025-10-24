@@ -1,7 +1,8 @@
-import { ShoppingCart, User, UtensilsCrossed } from "lucide-react";
+import { ShoppingCart, UtensilsCrossed, LogOut } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface NavbarProps {
   cartItemsCount?: number;
@@ -9,6 +10,7 @@ interface NavbarProps {
 
 export const Navbar = ({ cartItemsCount = 0 }: NavbarProps) => {
   const location = useLocation();
+  const { signOut, hasRole } = useAuth();
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -23,6 +25,26 @@ export const Navbar = ({ cartItemsCount = 0 }: NavbarProps) => {
         </Link>
 
         <div className="flex items-center gap-4">
+          {hasRole("gerente") && (
+            <>
+              <Link to="/manager/products">
+                <Button variant="ghost">Produtos</Button>
+              </Link>
+              <Link to="/reports">
+                <Button variant="ghost">Relatórios</Button>
+              </Link>
+            </>
+          )}
+          {hasRole("entregador") && (
+            <Link to="/delivery">
+              <Button variant="ghost">Entregas</Button>
+            </Link>
+          )}
+          {hasRole("administrador") && (
+            <Link to="/admin/users">
+              <Button variant="ghost">Usuários</Button>
+            </Link>
+          )}
           <Link to="/cart">
             <Button variant="ghost" size="icon" className="relative">
               <ShoppingCart className="h-5 w-5" />
@@ -33,11 +55,9 @@ export const Navbar = ({ cartItemsCount = 0 }: NavbarProps) => {
               )}
             </Button>
           </Link>
-          <Link to="/login">
-            <Button variant="ghost" size="icon">
-              <User className="h-5 w-5" />
-            </Button>
-          </Link>
+          <Button variant="ghost" size="icon" onClick={() => signOut()}>
+            <LogOut className="h-5 w-5" />
+          </Button>
         </div>
       </div>
     </nav>
