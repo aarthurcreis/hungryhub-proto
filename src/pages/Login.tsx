@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
-import { UtensilsCrossed } from "lucide-react";
+import { ChefHat } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -66,7 +66,7 @@ const Login = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
           <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[image:var(--gradient-primary)] mx-auto">
-            <UtensilsCrossed className="h-8 w-8 text-primary-foreground" />
+            <ChefHat className="h-8 w-8 text-primary-foreground" />
           </div>
           <CardTitle className="text-3xl font-bold bg-[image:var(--gradient-primary)] bg-clip-text text-transparent">
             FoodExpress
