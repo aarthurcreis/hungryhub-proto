@@ -1,4 +1,4 @@
-import { ShoppingCart, UtensilsCrossed, LogOut } from "lucide-react";
+import { ShoppingCart, ChefHat, LogOut } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,7 @@ export const Navbar = ({ cartItemsCount = 0 }: NavbarProps) => {
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[image:var(--gradient-primary)]">
-            <UtensilsCrossed className="h-6 w-6 text-primary-foreground" />
+            <ChefHat className="h-6 w-6 text-primary-foreground" />
           </div>
           <span className="text-xl font-bold bg-[image:var(--gradient-primary)] bg-clip-text text-transparent">
             FoodExpress
